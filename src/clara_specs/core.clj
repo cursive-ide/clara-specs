@@ -15,7 +15,7 @@
 (s/def ::accumulator (s/and vector?
                             (s/cat :binding-var ::variable-name
                                    :sep #{'<-}
-                                   :fact-type any?          ; TODO
+                                   :fact-type any?
                                    :_ #{:from}
                                    :fact-expr ::fact-expr)))
 
@@ -27,7 +27,7 @@
 (s/def ::fact-expr (s/and vector?
                           (s/cat :binding (s/? (s/cat :binding-var ::variable-name
                                                       :sep #{'<-}))
-                                 :fact-type any?            ; TODO
+                                 :fact-type any?
                                  :destructured-fact (s/? ::destructured)
                                  :expressions (s/* any?))))
 
@@ -47,9 +47,9 @@
   (s/cat :name simple-symbol?
          :docstring (s/? string?)
          :props (s/? map?)                                  ; TODO don't know what props look like
-         :conditions (s/+ ::condition)
+         :conditions (s/* ::condition)
          :implies #{'=>}
-         :rhs any?))                                        ; TODO can there be more than one expression here?
+         :rhs (s/+ any?)))
 
 (comment
   (defrule is-important

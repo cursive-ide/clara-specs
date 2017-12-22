@@ -16,7 +16,7 @@
                          {:expressions [(= :high level)]
                           :fact-type   SupportRequest}]]
            :implies    =>
-           :rhs        (println "High support requested!")}))
+           :rhs        [(println "High support requested!")]}))
   (is (= (s/conform ::clara/defrule-form
                     (rest '(defrule notify-client-rep
                                     "Find the client representative and send a notification of a support request."
@@ -34,7 +34,7 @@
                                         (= ?name name)]
                           :fact-type   ClientRepresentative}]]
            :implies    =>
-           :rhs        (println "Notify" ?name "that" ?client "has a new support request!")}))
+           :rhs        [(println "Notify" ?name "that" ?client "has a new support request!")]}))
   (is (= (s/conform ::clara/defrule-form
                     (rest '(defrule get-windspeeds-from-location
                                     [?temp <- [Temperature (= ?location location)]]
@@ -56,7 +56,7 @@
                           :_           :from
                           :sep         <-}]]
            :implies    =>
-           :rhs        ()})))
+           :rhs        [()]})))
 
 (deftest defquery-examples
   (is (= (s/conform ::clara/defquery-form
