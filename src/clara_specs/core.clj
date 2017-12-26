@@ -8,46 +8,61 @@
 (s/def ::destructured (s/and vector?
                              (s/cat :form ::core/binding-form)))
 
-(s/def ::test (s/and vector?
-                     (s/cat :test #{:test}
-                            :expr (s/* any?))))
 
-(s/def ::accumulator (s/and vector?
-                            (s/cat :binding-var ::variable-name
-                                   :sep #{'<-}
-                                   :fact-type any?
-                                   :_ #{:from}
-                                   :fact-expr ::fact-expr)))
+(s/def ::test-expr (s/and vector?
+                       (s/cat :test #{:test}
+                              :expr (s/* any?))))
+
+(s/def ::constraint any?)
+
+(s/def ::condition (s/and vector?
+                          (s/cat :type any?
+                                 :constraints (s/* ::constraint))))
+
+
+(s/def ::accumulator-expr (s/and vector?
+                                 (s/cat :result-binding ::variable-name
+                                        :<- #{'<-}
+                                        :accumulator any?
+                                        :from #{:from}
+                                        :condition ::condition)))
 
 (s/def ::boolean-expr (s/and vector?
-                             (s/cat :condition #{:and :or :not}
-                                    :expression (s/+ (s/or :boolean-expr ::boolean-expr
-                                                           :fact-expr ::fact-expr))))) ; TODO what do these look like?
+                             (s/cat :op #{:and :or :not :exists}
+                                    :conditions (s/+ (s/or :boolean-expr ::boolean-expr
+                                                           :condition ::condition)))))
 
-(s/def ::fact-expr (s/and vector?
-                          (s/cat :binding (s/? (s/cat :binding-var ::variable-name
-                                                      :sep #{'<-}))
-                                 :fact-type any?
-                                 :destructured-fact (s/? ::destructured)
-                                 :expressions (s/* any?))))
+(s/def ::fact-binding-expr (s/and vector?
+                            (s/cat :fact-binding (s/? (s/cat :binding-var ::variable-name
+                                                             :sep #{'<-}))
+                                   :condition ::condition)))
 
-(s/def ::condition (s/or :accumulator ::accumulator
-                         :fact-expr ::fact-expr
-                         :boolean-expr ::boolean-expr
-                         :test ::test))
+(s/def ::expression (s/or :accumulator-expr ::accumulator-expr
+                          :boolean-expr ::boolean-expr
+                          :test-expr ::test-expr
+                          :fact-binding-expr ::fact-binding-expr
+                          :condition ::condition))
+
+(s/def ::lhs (s/* ::expression))
+
+(s/def ::query-arg (s/and keyword?
+                          #(str/starts-with? (name %) "?")))
+
 
 (s/def ::defquery-form
   (s/cat :name simple-symbol?
          :docstring (s/? string?)
          :args (s/and vector?
-                      (s/* any?))                           ; TODO not sure what args can be
-         :conditions (s/+ ::condition)))                    ; TODO looks like multiple conditions inside single vector in the doc
+                      (s/* ::query-arg))
+         ;:lhs ::lhs                                               ; TODO. Not sure why but these don't seem equivalent...
+         :lhs (s/* ::expression)))
 
 (s/def ::defrule-form
   (s/cat :name simple-symbol?
          :docstring (s/? string?)
          :props (s/? map?)                                  ; TODO don't know what props look like
-         :conditions (s/* ::condition)
+         ;:lhs ::lhs
+         :lhs (s/* ::expression)
          :implies #{'=>}
          :rhs (s/+ any?)))
 
@@ -68,4 +83,19 @@
   (defquery get-promotions
             "Query to find promotions for the purchase."
             [:?type]
-            [?promotion <- Promotion (= ?type type)]))
+            [?promotion <- Promotion (= ?type type)])
+
+  '(defrule large-job-delay
+    "Large jobs must have at least a two week delay,
+     unless it is a top-tier client"
+    [WorkOrder (= ?clientid clientid)
+               (= scale :big)
+               (< (days-between requestdate duedate) 14)]
+
+    [:not [ClientTier
+           (= ?clientid id) ; Join to the above client ID.
+           (= tier :top)]]
+    =>
+    (insert! (->ValidationError
+              :timeframe
+              "Insufficient time prior to due date of the large order."))))
