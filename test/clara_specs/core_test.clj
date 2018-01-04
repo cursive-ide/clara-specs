@@ -42,8 +42,8 @@
                   {:fact-binding {:binding-var ?temp, :sep <-}
                    :condition {:type Temperature :constraints [(= ?location location)]}}]
                  [:accumulator-expr
-                  {:result-binding ?wind,
-                   :<- <-
+                  {:result-binding {:binding-var ?wind
+                                    :<- <-}
                    :accumulator (acc/all)
                    :from :from
                    :condition {:type WindSpeed :constraints [(= ?location location)]}}]],
@@ -113,8 +113,8 @@
 (deftest accumulators
   (is (= (s/conform ::clara/accumulator-expr
                     '[?wind <- (acc/all) :from [WindSpeed (= ?location location)]])
-         '{:result-binding ?wind
-           :<-             <-
+         '{:result-binding {:binding-var ?wind
+                            :<-             <-}
            :accumulator    (acc/all)
            :from           :from
            :condition      {:type        WindSpeed

@@ -19,16 +19,20 @@
                           (s/cat :type any?
                                  :constraints (s/* ::constraint))))
 
+(s/def ::accumulator-fn list?)
 
-(s/def ::accumulator-expr (s/and vector?
-                                 (s/cat :result-binding ::variable-name
-                                        :<- #{'<-}
-                                        :accumulator any?
-                                        :from #{:from}
-                                        :condition ::condition)))
+(s/def ::result-binding (s/cat :binding-var ::variable-name
+                               :<- #{'<-}))
+
+(s/def ::accumulator-expr (s/cat :result-binding (s/? ::result-binding)
+                                 :accumulator ::accumulator-fn
+                                 :from #{:from}
+                                 :condition ::condition))
+
+(s/def ::ops #{:and 'and :or 'or :not 'not :exists 'exists})
 
 (s/def ::boolean-expr (s/and vector?
-                             (s/cat :op #{:and 'and :or 'or :not 'not :exists 'exists}
+                             (s/cat :op ::ops
                                     :conditions (s/+ (s/or :boolean-expr ::boolean-expr
                                                            :condition ::condition)))))
 
