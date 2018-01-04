@@ -13,10 +13,16 @@
                        (s/cat :test #{:test}
                               :expr (s/* any?))))
 
-(s/def ::constraint any?)
+(s/def ::ops #{:and 'and :or 'or :not 'not :exists 'exists})
+
+(s/def ::constraint list?)
+
+(s/def ::fact-type (s/and #(not (s/valid? ::variable-name %))
+                          #(not (s/valid? ::ops %))
+                          #(not (s/valid? ::constraint %))))
 
 (s/def ::condition (s/and vector?
-                          (s/cat :type any?
+                          (s/cat :type ::fact-type
                                  :constraints (s/* ::constraint))))
 
 (s/def ::accumulator-fn list?)
@@ -28,8 +34,6 @@
                                  :accumulator ::accumulator-fn
                                  :from #{:from}
                                  :condition ::condition))
-
-(s/def ::ops #{:and 'and :or 'or :not 'not :exists 'exists})
 
 (s/def ::boolean-expr (s/and vector?
                              (s/cat :op ::ops
