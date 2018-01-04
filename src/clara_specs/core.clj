@@ -28,7 +28,7 @@
                                         :condition ::condition)))
 
 (s/def ::boolean-expr (s/and vector?
-                             (s/cat :op #{:and :or :not :exists}
+                             (s/cat :op #{:and 'and :or 'or :not 'not :exists 'exists}
                                     :conditions (s/+ (s/or :boolean-expr ::boolean-expr
                                                            :condition ::condition)))))
 
