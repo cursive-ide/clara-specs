@@ -48,7 +48,125 @@
                    :from :from
                    :condition {:type WindSpeed :constraints [(= ?location location)]}}]],
            :implies =>
-           :rhs [()]})))
+           :rhs [()]}))
+
+  (is (= (s/conform ::clara/defrule-form
+                    (rest '(defrule appreciation-day-and-valued-or-new
+                                    [Order (= ?order-id order-id) (= ?customer-id customer-id)]
+                                    [:or
+                                     [:and
+                                      [CurrentDay (= ?day day)]
+                                      [CustomerAppreciationDay (= ?day day)]]
+                                     [:and
+                                      [NewCustomer (= ?customer-id customer-id)]
+                                      [ValuedCustomer (= ?customer-id customer-id)]]]
+                                    =>
+                                    (insert! (->Discount ?order-id 20)))))
+
+        '{:name appreciation-day-and-valued-or-new,
+          :lhs
+                [[:condition
+                  {:type Order,
+                   :constraints
+                         [(= ?order-id order-id) (= ?customer-id customer-id)]}]
+                 [:boolean-expr
+                  {:op :or,
+                   :conditions
+                       [[:boolean-expr
+                         {:op :and,
+                          :conditions
+                              [[:condition
+                                {:type CurrentDay, :constraints [(= ?day day)]}]
+                               [:condition
+                                {:type CustomerAppreciationDay,
+                                 :constraints [(= ?day day)]}]]}]
+                        [:boolean-expr
+                         {:op :and,
+                          :conditions
+                              [[:condition
+                                {:type NewCustomer,
+                                 :constraints [(= ?customer-id customer-id)]}]
+                               [:condition
+                                {:type ValuedCustomer,
+                                 :constraints
+                                       [(= ?customer-id customer-id)]}]]}]]}]],
+          :implies =>,
+          :rhs [(insert! (->Discount ?order-id 20))]}))
+
+  (testing "No lhs/conditions"
+    (is (= (s/conform ::clara/defrule-form
+                     (rest '(defrule my-rule
+                              =>
+                              (insert! (->Discount ?order-id 20)))))
+           '{:name my-rule,
+             :implies =>,
+             :rhs [(insert! (->Discount ?order-id 20))]})))
+
+  (testing "Arbitrary fns in constraints"
+    (is (= (s/conform ::clara/defrule-form
+                      (rest '(defrule my-rule
+                                      [Order (> ?order-id order-id) (my-pred ?customer-id customer-id)]
+                                      =>
+                                      (insert! (->Discount ?order-id 20)))))
+           '{:name    my-rule,
+             :lhs
+                      [[:condition
+                        {:type Order,
+                         :constraints
+                               [(> ?order-id order-id) (my-pred ?customer-id customer-id)]}]],
+             :implies =>,
+             :rhs     [(insert! (->Discount ?order-id 20))]})))
+
+  (testing "Accumulator with no result binding"
+      (is (= (s/conform ::clara/defrule-form
+                        (rest '(defrule my-rule
+                                        [(acc/sum) :from [Order (= ?customer-id customer-id)]]
+                                        =>
+                                        (insert! (->Discount ?order-id 20)))))
+             '{:name    my-rule,
+               :lhs     [[:accumulator-expr
+                          {:accumulator (acc/sum),
+                           :from        :from,
+                           :condition
+                                        {:type        Order,
+                                         :constraints [(= ?customer-id customer-id)]}}],]
+               :implies =>,
+               :rhs     [(insert! (->Discount ?order-id 20))]}))))
+
+
+(deftest invalid-defrule-forms
+  (testing "No rule name"
+    (is (false? (s/valid? ::clara/defrule-form
+                          (rest '(defrule
+                                   [Order (= ?order-id order-id) (= ?customer-id customer-id)]
+                                   =>
+                                   (do)))))))
+
+  (testing "No RHS separator"
+    (is (false? (s/valid? ::clara/defrule-form
+                          (rest '(defrule my-rule
+                                          [Order (= ?order-id order-id) (= ?customer-id customer-id)]
+                                          (do)))))))
+
+  (testing "No RHS"
+    (is (false? (s/valid? ::clara/defrule-form
+                          (rest '(defrule my-rule
+                                          [Order (= ?order-id order-id) (= ?customer-id customer-id)]
+                                          =>))))))
+
+  (testing "Accumulator with > 1 condition"
+    (is (false? (s/valid? ::clara/defrule-form
+                          (rest '(defrule my-rule
+                                          [fact <- (acc/sum) :from [Order (= ?customer-id customer-id)] [ValuedCustomer (= ?customer-id 42)]]
+                                          =>
+                                          (do)))))))
+
+  (testing "Condition with only a fact-type not in a vector"
+    (is (false? (s/valid? ::clara/defrule-form
+                          (rest '(defrule my-rule
+                                          Order
+                                          =>
+                                          (do))))))))
 
 
 (deftest defquery-examples
@@ -94,9 +212,9 @@
                          {:type   Promotion
                           :constraints [(= type :discount-month)]}]]}))
 
-  ;; Under the current scheme we expect this to be valid. Determining a valid fact-type requires access to the fact-type function
-  ;; the user provides to `defsession`. The the default is just Clojure's `type` fn and works well for defrecords. Most users
-  ;; probably use this
+
+  ;; Under the current scheme we expect a fact type of `false` to be valid.
+  ;; We can add (not boolean?) (not list?) and others to the spec to prevent this
   (is (s/valid? ::clara/boolean-expr
                 '[:and
                   [false (= type :discount-month)]
