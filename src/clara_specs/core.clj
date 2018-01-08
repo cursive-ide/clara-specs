@@ -3,15 +3,15 @@
             [clojure.core.specs.alpha :as core]
             [clojure.string :as str]))
 
-(s/def ::variable-name (s/and simple-symbol? #(str/starts-with? % "?")))
+(s/def ::variable-name (s/and simple-symbol? #(str/starts-with? (name %) "?")))
 
 (s/def ::destructured (s/and vector?
                              (s/cat :form ::core/binding-form)))
 
 
 (s/def ::test-expr (s/and vector?
-                       (s/cat :test #{:test}
-                              :expr (s/* any?))))
+                          (s/cat :test #{:test}
+                                 :expr (s/* any?))))
 
 (s/def ::ops #{:and 'and :or 'or :not 'not :exists 'exists})
 
@@ -41,15 +41,14 @@
                                                            :condition ::condition)))))
 
 (s/def ::fact-binding-expr (s/and vector?
-                            (s/cat :fact-binding (s/? (s/cat :binding-var ::variable-name
-                                                             :sep #{'<-}))
-                                   :condition ::condition)))
+                                  (s/cat :fact-binding (s/? ::result-binding)
+                                         :type ::fact-type
+                                         :constraints (s/* ::constraint))))
 
 (s/def ::expression (s/or :accumulator-expr ::accumulator-expr
                           :boolean-expr ::boolean-expr
                           :test-expr ::test-expr
-                          :fact-binding-expr ::fact-binding-expr
-                          :condition ::condition))
+                          :fact-binding-expr ::fact-binding-expr))
 
 (s/def ::lhs (s/* ::expression))
 
@@ -94,16 +93,16 @@
             [?promotion <- Promotion (= ?type type)])
 
   '(defrule large-job-delay
-    "Large jobs must have at least a two week delay,
-     unless it is a top-tier client"
-    [WorkOrder (= ?clientid clientid)
-               (= scale :big)
-               (< (days-between requestdate duedate) 14)]
+            "Large jobs must have at least a two week delay,
+             unless it is a top-tier client"
+            [WorkOrder (= ?clientid clientid)
+                     (= scale :big)
+                     (< (days-between requestdate duedate) 14)]
 
-    [:not [ClientTier
-           (= ?clientid id) ; Join to the above client ID.
-           (= tier :top)]]
-    =>
-    (insert! (->ValidationError
-              :timeframe
-              "Insufficient time prior to due date of the large order."))))
+            [:not [ClientTier
+                   (= ?clientid id)                         ; Join to the above client ID.
+                   (= tier :top)]]
+            =>
+            (insert! (->ValidationError
+                               :timeframe
+                               "Insufficient time prior to due date of the large order."))))
