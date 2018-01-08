@@ -173,4 +173,12 @@
            :accumulator    (acc/all)
            :from           :from
            :condition      {:type        WindSpeed
-                            :constraints [(= ?location location)]}})))
+                            :constraints [(= ?location location)]}}))
+  (is (= (s/conform ::clara/accumulator-expr
+                    '[?current-temp <- newest-temp :from [TemperatureReading (= ?location location)]])
+         '{:result-binding {:<-          <-
+                            :binding-var ?current-temp}
+           :accumulator    newest-temp
+           :from           :from
+           :condition      {:constraints [(= ?location location)]
+                            :type        TemperatureReading}})))

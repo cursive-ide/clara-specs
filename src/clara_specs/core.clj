@@ -25,7 +25,7 @@
                           (s/cat :type ::fact-type
                                  :constraints (s/* ::constraint))))
 
-(s/def ::accumulator-fn list?)
+(s/def ::accumulator-fn #(or (list? %) (symbol? %)))
 
 (s/def ::result-binding (s/cat :binding-var ::variable-name
                                :<- #{'<-}))
