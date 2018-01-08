@@ -135,7 +135,15 @@
                         :address}]}))
   (is (= (s/conform ::clara/destructured
                     '[person])
-         '{:form [:sym person]})))
+         '{:form [:sym person]}))
+  (is (= (s/conform ::clara/expression '[Person [{{city :city state :state} :address}] (= ?city city)])
+         '[:fact-binding-expr {:constraints   [(= ?city city)]
+                               :destructuring {:form [:map {{city :city state :state} :address}]}
+                               :type          Person}]))
+  (is (= (s/conform ::clara/expression '[Person [person] (= ?city (get-in person [:address :city]))])
+         '[:fact-binding-expr {:constraints   [(= ?city (get-in person [:address :city]))]
+                               :destructuring {:form [:sym person]}
+                               :type          Person}])))
 
 (deftest boolean-expressions
   (is (= (s/conform ::clara/boolean-expr

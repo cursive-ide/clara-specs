@@ -30,10 +30,11 @@
 (s/def ::result-binding (s/cat :binding-var ::variable-name
                                :<- #{'<-}))
 
-(s/def ::accumulator-expr (s/cat :result-binding (s/? ::result-binding)
-                                 :accumulator ::accumulator-fn
-                                 :from #{:from}
-                                 :condition ::condition))
+(s/def ::accumulator-expr (s/and vector?
+                                 (s/cat :result-binding (s/? ::result-binding)
+                                        :accumulator ::accumulator-fn
+                                        :from #{:from}
+                                        :condition ::condition)))
 
 (s/def ::boolean-expr (s/and vector?
                              (s/cat :op ::ops
@@ -43,6 +44,7 @@
 (s/def ::fact-binding-expr (s/and vector?
                                   (s/cat :fact-binding (s/? ::result-binding)
                                          :type ::fact-type
+                                         :destructuring (s/? ::destructured)
                                          :constraints (s/* ::constraint))))
 
 (s/def ::expression (s/or :accumulator-expr ::accumulator-expr
@@ -96,13 +98,13 @@
             "Large jobs must have at least a two week delay,
              unless it is a top-tier client"
             [WorkOrder (= ?clientid clientid)
-                     (= scale :big)
-                     (< (days-between requestdate duedate) 14)]
+             (= scale :big)
+             (< (days-between requestdate duedate) 14)]
 
             [:not [ClientTier
                    (= ?clientid id)                         ; Join to the above client ID.
                    (= tier :top)]]
             =>
             (insert! (->ValidationError
-                               :timeframe
-                               "Insufficient time prior to due date of the large order."))))
+                       :timeframe
+                       "Insufficient time prior to due date of the large order."))))
