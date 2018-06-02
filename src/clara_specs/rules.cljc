@@ -28,10 +28,6 @@
 (def SExpr
   (sc/pred seq? "s-expression"))
 
-(comment
-  (let [sexpr '(= ?a 1)]
-    [(s/conform ::s-expr sexpr)
-     (sc/validate SExpr sexpr)]))
 
 (s/def :fact-condition/type any?)
 (s/def ::constraints (s/coll-of ::s-expr :kind vector?))
@@ -42,19 +38,6 @@
 (s/def ::fact-condition
   (s/keys :req-un [:fact-condition/type ::constraints]
           :opt-un [:fact-condition/original-constraints :fact-condition/fact-binding :fact-condition/args]))
-
-(comment
-  (let [req-fact-condition {:type        java.util.Date
-                            :constraints ['(= ?a 1) '(= ?b 2)]}
-        opt-fact-condition {:type                 java.util.Date
-                            :constraints          ['(= ?a 1) '(= ?b 2)]
-                            :original-constraints ['(= 1 ?a) '(= 2 ?b)]
-                            :args                 nil
-                            :fact-binding         :?my-fact}]
-    {:req [(s/conform ::fact-condition req-fact-condition)
-           (sc/validate FactCondition req-fact-condition)]
-     :opt [(s/conform ::fact-condition opt-fact-condition)
-           (sc/validate FactCondition opt-fact-condition)]}))
 
 (def FactCondition
   {:type                                   sc/Any           ;(sc/either sc/Keyword (sc/pred symbol?))
@@ -82,13 +65,12 @@
 (def TestCondition
   {:constraints [SExpr]})
 
-(s/def :leaf-condition/type ::fact-condition)
 
 (s/def ::leaf-condition
   (s/or
     :fact-condition ::fact-condition
-    :accumulator-condition any?                             ; TODO
-    :test-condition any?))                                  ; TODO
+    :accumulator-condition ::accumulator-condition
+    :test-condition ::test-condition))                                  ; TODO
 
 (def LeafCondition
   (sc/conditional
