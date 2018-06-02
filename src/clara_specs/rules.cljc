@@ -101,7 +101,7 @@
 (s/def ::boolean-operator #{:or :not :and :exists})
 
 ; TODO.
-(s/def ::boolean-condition (s/cat :op ::ops
+(s/def ::boolean-condition (s/cat :op ::boolean-operator
                                   :condition ::condition))
 (def BooleanCondition
   [(sc/one (sc/enum :or :not :and :exists) "operator")
